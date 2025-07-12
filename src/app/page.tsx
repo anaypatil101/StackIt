@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { questions as allQuestions } from '@/lib/mock-data';
 import { PlusCircle, Search, Loader2 } from 'lucide-react';
 import { QuestionItem } from '@/components/questions/question-item';
 import type { Question } from '@/lib/types';
@@ -19,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useQuestion } from '@/context/question-context';
 
 function SearchBar() {
   const searchParams = useSearchParams();
@@ -52,6 +52,7 @@ function SearchBar() {
 }
 
 export default function Home() {
+  const { questions: allQuestions } = useQuestion();
   const searchParams = useSearchParams();
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>(allQuestions);
   const [isSearching, startSearchTransition] = useTransition();
@@ -82,7 +83,7 @@ export default function Home() {
     };
 
     performSearch();
-  }, [query, toast]);
+  }, [query, toast, allQuestions]);
 
   // Re-listen to window events for client-side routing changes
   useEffect(() => {

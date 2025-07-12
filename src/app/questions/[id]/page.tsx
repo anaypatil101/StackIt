@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { format } from "date-fns"
 
-import { questions, users } from "@/lib/mock-data"
-import type { Answer } from "@/lib/types"
+import { users } from "@/lib/mock-data"
+import type { Answer, Question } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,20 +17,29 @@ import { AnswerItem } from "@/components/answers/answer-item"
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/shared/rich-text-editor";
 import { useAuth } from "@/context/auth-context";
+import { useQuestion } from "@/context/question-context";
 
 export default function QuestionDetailPage({ params }: { params: { id: string } }) {
-  const question = questions.find((q) => q.id === params.id)
+  const { questions, addAnswer } = useQuestion();
+  const [question, setQuestion] = useState<Question | undefined>(undefined);
+  
   const { toast } = useToast();
   const { currentUser } = useAuth();
-
-  const [answers, setAnswers] = useState<Answer[]>(question?.answers || []);
+  
   const [newAnswer, setNewAnswer] = useState("");
-
+  
+  useEffect(() => {
+    const foundQuestion = questions.find((q) => q.id === params.id);
+    setQuestion(foundQuestion);
+  }, [params.id, questions]);
+  
+  
   if (!question) {
-    notFound()
+    // Should show a loading state ideally
+    return null;
   }
 
-  const sortedAnswers = [...answers].sort((a, b) => {
+  const sortedAnswers = [...question.answers].sort((a, b) => {
     if (a.isAccepted) return -1
     if (b.isAccepted) return 1
     return b.votes - a.votes
@@ -65,7 +74,7 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
       createdAt: new Date(),
     };
 
-    setAnswers(prev => [...prev, newAnswerObject]);
+    addAnswer(question.id, newAnswerObject);
     setNewAnswer(""); // Clear the editor
     toast({
       title: "Answer Posted!",

@@ -24,6 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { getSuggestedTags } from "./actions";
 import { useAuth } from "@/context/auth-context";
+import { useQuestion } from "@/context/question-context";
+import type { Question } from "@/lib/types";
 
 const formSchema = z.object({
   title: z.string().min(10, "Title must be at least 10 characters long."),
@@ -37,6 +39,7 @@ export default function AskQuestionPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const { addQuestion } = useQuestion();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -88,7 +91,21 @@ export default function AskQuestionPage() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log({ ...values, tags, author: currentUser });
+    if (!currentUser) return;
+
+    const newQuestion: Question = {
+      id: `q-${Date.now()}`,
+      title: values.title,
+      description: values.description,
+      tags,
+      author: currentUser,
+      votes: 0,
+      answers: [],
+      createdAt: new Date(),
+    }
+    
+    addQuestion(newQuestion);
+    
     toast({
       title: "Question Posted!",
       description: "Your question has been successfully submitted.",

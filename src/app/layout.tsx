@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { Toaster } from '@/components/ui/toaster';
 import { Header } from '@/components/layout/header';
 import { AuthProvider } from '@/context/auth-context';
+import { QuestionProvider } from '@/context/question-context';
 
 export const metadata: Metadata = {
   title: 'QnA Hub',
@@ -32,15 +33,17 @@ export default function RootLayout({
         )}
       >
         <AuthProvider>
-          <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <div className="flex-1">
-              <main className="container py-8">
-              {children}
-              </main>
+          <QuestionProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <Header />
+              <div className="flex-1">
+                <main className="container py-8">
+                {children}
+                </main>
+              </div>
             </div>
-          </div>
-          <Toaster />
+            <Toaster />
+          </QuestionProvider>
         </AuthProvider>
       </body>
     </html>

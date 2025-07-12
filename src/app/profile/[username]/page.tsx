@@ -7,14 +7,16 @@ import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import { HelpCircle, MessageSquare } from "lucide-react"
 
-import { questions as allQuestions, users } from "@/lib/mock-data"
+import { users } from "@/lib/mock-data"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useQuestion } from "@/context/question-context"
 
 export default function ProfilePage() {
   const params = useParams()
   const username = decodeURIComponent(params.username as string)
+  const { questions: allQuestions } = useQuestion();
 
   const user = Object.values(users).find(u => u.name === username)
 
