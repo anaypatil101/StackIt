@@ -56,4 +56,25 @@
   body {
     @apply bg-background text-foreground;
   }
+  .ProseMirror-focused {
+      outline: none;
+  }
+  .prose {
+    max-width: 100%;
+  }
+  .prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius);
+  }
+  .prose p {
+    margin: 1em 0;
+  }
+  .prose a {
+    color: hsl(var(--primary));
+    text-decoration: underline;
+  }
+  .prose ul, .prose ol {
+    padding-left: 2rem;
+  }
 }

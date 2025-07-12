@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Wand2, X, Loader2 } from "lucide-react";
@@ -21,7 +22,6 @@ import { RichTextEditor } from "@/components/shared/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { getSuggestedTags } from "./actions";
-import { Textarea } from "@/components/ui/textarea";
 
 const formSchema = z.object({
   title: z.string().min(10, "Title must be at least 10 characters long."),
@@ -111,20 +111,20 @@ export default function AskQuestionPage() {
               </FormItem>
             )}
           />
-          <FormField
+          <Controller
             control={form.control}
             name="description"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
                 <FormLabel className="text-lg font-semibold">Description</FormLabel>
                 <FormControl>
-                  <Textarea
+                  <RichTextEditor
+                    value={field.value}
+                    onChange={field.onChange}
                     placeholder="Describe your question in detail..."
-                    className="h-48"
-                    {...field}
                   />
                 </FormControl>
-                <FormMessage />
+                 {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
               </FormItem>
             )}
           />

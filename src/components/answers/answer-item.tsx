@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -9,7 +10,6 @@ import type { Answer } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { VoteButtons } from "@/components/shared/vote-buttons";
-import { Separator } from "@/components/ui/separator";
 
 interface AnswerItemProps {
   answer: Answer;
@@ -48,9 +48,8 @@ export function AnswerItem({ answer, isQuestionOwner }: AnswerItemProps) {
             "prose max-w-none text-foreground p-4 rounded-md border border-transparent",
             isAccepted && "border-accent bg-accent/5"
           )}
-        >
-          {answer.content}
-        </div>
+          dangerouslySetInnerHTML={{ __html: answer.content }}
+        />
         <div className="flex items-center justify-end text-sm text-muted-foreground mt-4">
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">

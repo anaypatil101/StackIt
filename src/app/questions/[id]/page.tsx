@@ -15,7 +15,7 @@ import { Separator } from "@/components/ui/separator"
 import { VoteButtons } from "@/components/shared/vote-buttons"
 import { AnswerItem } from "@/components/answers/answer-item"
 import { useToast } from "@/hooks/use-toast";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/shared/rich-text-editor";
 
 export default function QuestionDetailPage({ params }: { params: { id: string } }) {
   const question = questions.find((q) => q.id === params.id)
@@ -36,6 +36,7 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
 
   const handlePostAnswer = (e: React.FormEvent) => {
     e.preventDefault();
+    // Basic validation, tiptap will enforce minimum length via schema if needed
     if (newAnswer.trim().length < 20) {
       toast({
         variant: "destructive",
@@ -80,7 +81,10 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
             <VoteButtons initialVotes={question.votes} />
           </div>
           <div className="flex-1 space-y-6">
-            <div className="prose prose-lg max-w-none text-foreground">{question.description}</div>
+            <div 
+              className="prose prose-lg max-w-none text-foreground"
+              dangerouslySetInnerHTML={{ __html: question.description }}
+            />
             <div className="flex flex-wrap gap-2">
               {question.tags.map((tag) => (
                 <Badge key={tag} variant="secondary">
@@ -117,11 +121,10 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
        <div className="mt-12">
         <h2 className="text-2xl font-bold font-headline mb-4">Your Answer</h2>
         <form onSubmit={handlePostAnswer}>
-          <Textarea 
-             placeholder="Describe your answer in detail..."
-             className="h-48"
+          <RichTextEditor
              value={newAnswer} 
-             onChange={(e) => setNewAnswer(e.target.value)} 
+             onChange={setNewAnswer}
+             placeholder="Describe your answer in detail..."
           />
           <Button type="submit" className="mt-4 bg-accent hover:bg-accent/90">Post Your Answer</Button>
         </form>
