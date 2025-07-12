@@ -1,3 +1,4 @@
+
 "use client"
 
 import Link from "next/link"
@@ -14,6 +15,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+
+// Assuming the logged in user is Jane Doe from mock data
+import { users } from "@/lib/mock-data"
+const currentUser = users.jane
 
 export function Header() {
   return (
@@ -74,10 +79,12 @@ export function Header() {
                 </div>
               </PopoverContent>
             </Popover>
-            <Avatar>
-              <AvatarImage src="https://placehold.co/40x40/64B5F6/FFFFFF.png?text=JD" alt="Jane Doe" />
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
+            <Link href={`/profile/${encodeURIComponent(currentUser.name)}`}>
+              <Avatar>
+                <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+                <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+            </Link>
           </nav>
         </div>
       </div>

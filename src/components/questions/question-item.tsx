@@ -1,3 +1,4 @@
+
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow"
 import { MessageSquare } from "lucide-react"
@@ -39,15 +40,17 @@ export function QuestionItem({ question }: QuestionItemProps) {
             ))}
           </div>
           <div className="flex items-center justify-between text-sm text-muted-foreground mt-4">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={question.author.avatarUrl} alt={question.author.name} />
-                <AvatarFallback>
-                  {question.author.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <span>{question.author.name}</span>
-            </div>
+            <Link href={`/profile/${encodeURIComponent(question.author.name)}`} className="group">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={question.author.avatarUrl} alt={question.author.name} />
+                  <AvatarFallback>
+                    {question.author.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="group-hover:underline text-primary/80">{question.author.name}</span>
+              </div>
+            </Link>
             <span>
               asked {formatDistanceToNow(question.createdAt, { addSuffix: true })}
             </span>

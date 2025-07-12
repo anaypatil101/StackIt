@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 import { Check } from "lucide-react";
 
@@ -51,18 +52,20 @@ export function AnswerItem({ answer, isQuestionOwner }: AnswerItemProps) {
           dangerouslySetInnerHTML={{ __html: answer.content }}
         />
         <div className="flex items-center justify-end text-sm text-muted-foreground mt-4">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={answer.author.avatarUrl} alt={answer.author.name} />
-              <AvatarFallback>
-                {answer.author.name.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <span>
-              {answer.author.name} answered{" "}
-              {formatDistanceToNow(answer.createdAt, { addSuffix: true })}
-            </span>
-          </div>
+          <Link href={`/profile/${encodeURIComponent(answer.author.name)}`} className="group">
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={answer.author.avatarUrl} alt={answer.author.name} />
+                <AvatarFallback>
+                  {answer.author.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <span>
+                <span className="group-hover:underline text-primary/80">{answer.author.name}</span> answered{" "}
+                {formatDistanceToNow(answer.createdAt, { addSuffix: true })}
+              </span>
+            </div>
+          </Link>
         </div>
       </div>
     </div>

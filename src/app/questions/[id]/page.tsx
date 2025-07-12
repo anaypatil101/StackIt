@@ -93,16 +93,18 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
               ))}
             </div>
             <div className="flex justify-end">
-              <div className="flex items-center gap-2 text-sm">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={question.author.avatarUrl} alt={question.author.name} />
-                  <AvatarFallback>{question.author.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="text-muted-foreground">asked by</div>
-                  <div className="font-semibold text-primary">{question.author.name}</div>
+              <Link href={`/profile/${encodeURIComponent(question.author.name)}`} className="group">
+                <div className="flex items-center gap-2 text-sm">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={question.author.avatarUrl} alt={question.author.name} />
+                    <AvatarFallback>{question.author.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="text-muted-foreground">asked by</div>
+                    <div className="font-semibold text-primary group-hover:underline">{question.author.name}</div>
+                  </div>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
