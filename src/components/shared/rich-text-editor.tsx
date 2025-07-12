@@ -44,11 +44,23 @@ const EditorToolbar = ({ editor }: { editor: any }) => {
   }, [editor])
 
   const addImage = useCallback(() => {
-    const url = window.prompt('Image URL')
-
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run()
-    }
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const src = e.target?.result as string;
+          if (src) {
+            editor.chain().focus().setImage({ src }).run();
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
   }, [editor])
   
   const onEmojiClick = (emojiData: EmojiClickData) => {
