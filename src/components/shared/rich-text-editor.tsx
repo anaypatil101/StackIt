@@ -20,7 +20,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-export function RichTextEditor() {
+interface RichTextEditorProps {
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+}
+
+export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
   return (
     <div className="rounded-md border">
       <TooltipProvider>
@@ -123,8 +128,10 @@ export function RichTextEditor() {
         </div>
       </TooltipProvider>
       <Textarea
-        placeholder="Describe your question in detail..."
+        placeholder="Describe your answer in detail..."
         className="h-48 w-full rounded-none border-0 resize-y focus-visible:ring-0"
+        value={value}
+        onChange={onChange}
       />
     </div>
   )

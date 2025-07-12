@@ -1,8 +1,13 @@
+
+"use client";
+
+import { useState } from "react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { format } from "date-fns"
 
-import { questions } from "@/lib/mock-data"
+import { questions, users } from "@/lib/mock-data"
+import type { Answer } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -10,19 +15,52 @@ import { Separator } from "@/components/ui/separator"
 import { VoteButtons } from "@/components/shared/vote-buttons"
 import { AnswerItem } from "@/components/answers/answer-item"
 import { RichTextEditor } from "@/components/shared/rich-text-editor"
+import { useToast } from "@/hooks/use-toast";
 
 export default function QuestionDetailPage({ params }: { params: { id: string } }) {
   const question = questions.find((q) => q.id === params.id)
+  const { toast } = useToast();
+
+  const [answers, setAnswers] = useState<Answer[]>(question?.answers || []);
+  const [newAnswer, setNewAnswer] = useState("");
 
   if (!question) {
     notFound()
   }
 
-  const sortedAnswers = [...question.answers].sort((a, b) => {
+  const sortedAnswers = [...answers].sort((a, b) => {
     if (a.isAccepted) return -1
     if (b.isAccepted) return 1
     return b.votes - a.votes
   })
+
+  const handlePostAnswer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newAnswer.trim().length < 20) {
+      toast({
+        variant: "destructive",
+        title: "Answer is too short",
+        description: "Your answer must be at least 20 characters long.",
+      });
+      return;
+    }
+    
+    const newAnswerObject: Answer = {
+      id: `ans-${Date.now()}`,
+      author: users.jane, // Assuming the logged in user is Jane Doe
+      content: newAnswer,
+      votes: 0,
+      isAccepted: false,
+      createdAt: new Date(),
+    };
+
+    setAnswers(prev => [...prev, newAnswerObject]);
+    setNewAnswer(""); // Clear the editor
+    toast({
+      title: "Answer Posted!",
+      description: "Your answer has been successfully submitted.",
+    });
+  };
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -68,7 +106,7 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
       <Separator />
       <div className="my-8">
         <h2 className="text-2xl font-bold font-headline mb-4">
-          {question.answers.length} Answer{question.answers.length !== 1 && "s"}
+          {sortedAnswers.length} Answer{sortedAnswers.length !== 1 && "s"}
         </h2>
         <div className="space-y-6">
           {sortedAnswers.map(answer => (
@@ -78,8 +116,10 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
       </div>
        <div className="mt-12">
         <h2 className="text-2xl font-bold font-headline mb-4">Your Answer</h2>
-        <RichTextEditor />
-        <Button className="mt-4 bg-accent hover:bg-accent/90">Post Your Answer</Button>
+        <form onSubmit={handlePostAnswer}>
+          <RichTextEditor value={newAnswer} onChange={(e) => setNewAnswer(e.target.value)} />
+          <Button type="submit" className="mt-4 bg-accent hover:bg-accent/90">Post Your Answer</Button>
+        </form>
       </div>
     </div>
   )
