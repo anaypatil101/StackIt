@@ -56,7 +56,7 @@ export function AnswerItem({ answer, isQuestionOwner }: AnswerItemProps) {
           <Link href={`/profile/${encodeURIComponent(answer.author.name)}`} className="group">
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
-                <AvatarImage src={answer.author.avatarUrl} alt={answer.author.name} />
+                <AvatarImage src={answer.author.avatarUrl} alt={answer.author.name} data-ai-hint="avatar" />
                 <AvatarFallback>
                   {answer.author.name.charAt(0)}
                 </AvatarFallback>

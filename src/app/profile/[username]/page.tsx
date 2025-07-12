@@ -1,16 +1,17 @@
 
-"use client";
-
-import { useState, useEffect } from "react";
-import { notFound, useParams } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
-import { HelpCircle, MessageSquare, Loader2 } from "lucide-react";
+import { HelpCircle, MessageSquare } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { User, Question } from "@/lib/types";
+import dbConnect from "@/lib/dbConnect";
+import UserModel from "@/models/user";
+import QuestionModel from "@/models/question";
+import AnswerModel from "@/models/answer";
 
 interface ProfileData {
     user: User;
@@ -18,40 +19,42 @@ interface ProfileData {
     answerCount: number;
 }
 
-// Server action to fetch profile data
+// Server-side function to fetch profile data
 async function getProfileData(username: string): Promise<ProfileData | null> {
-    const res = await fetch(`/api/users/${username}`, { cache: 'no-store' });
-    if (!res.ok) {
+    try {
+        await dbConnect();
+        const user = await UserModel.findOne({ name: username }).lean();
+
+        if (!user) {
+            return null;
+        }
+
+        const questions = await QuestionModel.find({ author: user._id })
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const answerCount = await AnswerModel.countDocuments({ author: user._id });
+        
+        const profileData = {
+            user: {
+                _id: user._id.toString(),
+                name: user.name,
+                avatarUrl: user.avatarUrl,
+            },
+            questions: JSON.parse(JSON.stringify(questions)),
+            answerCount,
+        };
+
+        return profileData;
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
         return null;
     }
-    return res.json();
 }
 
-export default function ProfilePage() {
-  const params = useParams();
+export default async function ProfilePage({ params }: { params: { username: string } }) {
   const username = decodeURIComponent(params.username as string);
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (username) {
-        getProfileData(username)
-            .then(data => {
-                setProfileData(data);
-            })
-            .catch(err => console.error("Failed to fetch profile data", err))
-            .finally(() => setLoading(false));
-    }
-  }, [username]);
-
-  if (loading) {
-      return (
-          <div className="flex justify-center items-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="ml-4 text-muted-foreground">Loading Profile...</p>
-          </div>
-      );
-  }
+  const profileData = await getProfileData(username);
 
   if (!profileData) {
     notFound();
@@ -63,7 +66,7 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto">
       <div className="flex flex-col sm:flex-row items-start gap-6 mb-8">
         <Avatar className="w-24 h-24 text-3xl">
-          <AvatarImage src={user.avatarUrl} alt={user.name} />
+          <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="avatar" />
           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
         </Avatar>
         <div className="flex-1">

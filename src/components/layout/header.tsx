@@ -78,7 +78,7 @@ export function Header() {
                       <div className="grid gap-2">
                         <div className="flex items-start space-x-4 rounded-md p-2 hover:bg-secondary">
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src="https://placehold.co/40x40/4CAF50/FFFFFF.png?text=JS" alt="John Smith" />
+                            <AvatarImage src="https://placehold.co/40x40/4CAF50/FFFFFF.png?text=JS" alt="John Smith" data-ai-hint="avatar" />
                             <AvatarFallback>JS</AvatarFallback>
                           </Avatar>
                           <div className="text-sm">
@@ -90,7 +90,7 @@ export function Header() {
                         </div>
                         <div className="flex items-start space-x-4 rounded-md p-2 hover:bg-secondary">
                            <Avatar className="h-8 w-8">
-                            <AvatarImage src="https://placehold.co/40x40/F44336/FFFFFF.png?text=AR" alt="Alex Ray" />
+                            <AvatarImage src="https://placehold.co/40x40/F44336/FFFFFF.png?text=AR" alt="Alex Ray" data-ai-hint="avatar" />
                             <AvatarFallback>AR</AvatarFallback>
                           </Avatar>
                           <div className="text-sm">
@@ -109,7 +109,7 @@ export function Header() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                       <Avatar>
-                        <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} />
+                        <AvatarImage src={currentUser.avatarUrl} alt={currentUser.name} data-ai-hint="avatar" />
                         <AvatarFallback>{currentUser.name.charAt(0)}</AvatarFallback>
                       </Avatar>
                     </Button>

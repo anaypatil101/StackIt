@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useTransition } from "react"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, useRouter } from "next/navigation"
 import { format } from "date-fns"
 import { Loader2 } from "lucide-react"
 
@@ -17,19 +17,8 @@ import { AnswerItem } from "@/components/answers/answer-item"
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/shared/rich-text-editor";
 import { useAuth } from "@/context/auth-context";
-import { useQuestion } from "@/context/question-context";
 import { postAnswer } from "./actions";
-
-async function getQuestionDetails(id: string): Promise<Question | null> {
-    // This fetch should be replaced by a server action or direct db call in a server component
-    const res = await fetch(`/api/questions/${id}`, { cache: 'no-store' });
-    if (!res.ok) {
-        return null;
-    }
-    const data = await res.json();
-    return data.question;
-}
-
+import { getQuestionDetails } from "./data";
 
 export default function QuestionDetailPage({ params }: { params: { id: string } }) {
   const [question, setQuestion] = useState<Question | null>(null);
@@ -38,15 +27,24 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
 
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const router = useRouter();
   
   const [newAnswer, setNewAnswer] = useState("");
   
   useEffect(() => {
     getQuestionDetails(params.id)
         .then(data => {
-            setQuestion(data);
+            if (data) {
+              setQuestion(data);
+            } else {
+              // The component will be unmounted by notFound(), so no need to set state
+              notFound();
+            }
         })
-        .catch(err => console.error("Failed to fetch question details", err))
+        .catch(err => {
+            console.error("Failed to fetch question details", err)
+            // Optionally redirect to an error page or show a toast
+        })
         .finally(() => setLoading(false));
   }, [params.id]);
   
@@ -69,9 +67,12 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
         });
 
         if (result.success && result.answer) {
-            setQuestion(prev => prev ? { ...prev, answers: [...prev.answers, result.answer as Answer] } : null);
+            // Optimistically update the UI with the new answer
+            const newAnswerWithAuthor = { ...result.answer, author: { _id: currentUser._id, name: currentUser.name, avatarUrl: currentUser.avatarUrl }};
+            setQuestion(prev => prev ? { ...prev, answers: [...prev.answers, newAnswerWithAuthor as Answer] } : null);
             setNewAnswer(""); // Clear the editor
             toast({ title: "Answer Posted!", description: "Your answer has been successfully submitted." });
+            router.refresh(); // Re-fetch server data to ensure consistency
         } else {
             toast({ variant: "destructive", title: "Failed to post answer", description: result.error || "An unknown error occurred." });
         }
@@ -88,7 +89,8 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
   }
 
   if (!question) {
-    notFound();
+    // This will be handled by the notFound() call in useEffect, but as a fallback:
+    return notFound();
   }
 
   const sortedAnswers = [...question.answers].sort((a, b) => {
@@ -132,7 +134,7 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
               <Link href={`/profile/${encodeURIComponent(question.author.name)}`} className="group">
                 <div className="flex items-center gap-2 text-sm">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={question.author.avatarUrl} alt={question.author.name} />
+                    <AvatarImage src={question.author.avatarUrl} alt={question.author.name} data-ai-hint="avatar" />
                     <AvatarFallback>{question.author.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>

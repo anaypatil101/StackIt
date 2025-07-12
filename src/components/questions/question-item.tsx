@@ -6,7 +6,7 @@ import { MessageSquare } from "lucide-react"
 import type { Question } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { VoteButtons } from "@/components/shared/vote-buttons"
 
 interface QuestionItemProps {
@@ -43,7 +43,7 @@ export function QuestionItem({ question }: QuestionItemProps) {
             <Link href={`/profile/${encodeURIComponent(question.author.name)}`} className="group">
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={question.author.avatarUrl} alt={question.author.name} />
+                  <AvatarImage src={question.author.avatarUrl} alt={question.author.name} data-ai-hint="avatar" />
                   <AvatarFallback>
                     {question.author.name.charAt(0)}
                   </AvatarFallback>
