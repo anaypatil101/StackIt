@@ -50,6 +50,6 @@ const QuestionSchema = new Schema<Question>({
 QuestionSchema.index({ title: 'text', description: 'text', tags: 'text' });
 
 
-// const QuestionModel: Model<Question> = mongoose.models.Question || mongoose.model<Question>('Question', QuestionSchema);
+const QuestionModel: Model<Question> = mongoose.models.Question || mongoose.model<Question>('Question', QuestionSchema);
 
-// export default QuestionModel;
+export default QuestionModel;
