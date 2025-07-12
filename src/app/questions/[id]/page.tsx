@@ -1,105 +1,44 @@
 
-"use client";
-
-import { useState, useEffect, useTransition } from "react"
+import { notFound } from "next/navigation"
 import Link from "next/link"
-import { notFound, useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { Loader2 } from "lucide-react"
 
-import type { Answer, Question } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { VoteButtons } from "@/components/shared/vote-buttons"
-import { AnswerItem } from "@/components/answers/answer-item"
-import { useToast } from "@/hooks/use-toast";
-import { RichTextEditor } from "@/components/shared/rich-text-editor";
-import { useAuth } from "@/context/auth-context";
-import { postAnswer } from "./actions";
 import { getQuestionDetails } from "./data";
+import { AnswerSection } from "./answer-section";
+import { cookies } from "next/headers";
+import jwt from 'jsonwebtoken';
+import type { DecodedUser } from "@/lib/types";
 
-export default function QuestionDetailPage({ params }: { params: { id: string } }) {
-  const [question, setQuestion] = useState<Question | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, startSubmitting] = useTransition();
-
-  const { toast } = useToast();
-  const { currentUser } = useAuth();
-  const router = useRouter();
-  
-  const [newAnswer, setNewAnswer] = useState("");
-  
-  useEffect(() => {
-    getQuestionDetails(params.id)
-        .then(data => {
-            if (data) {
-              setQuestion(data);
-            } else {
-              // The component will be unmounted by notFound(), so no need to set state
-              notFound();
-            }
-        })
-        .catch(err => {
-            console.error("Failed to fetch question details", err)
-            // Optionally redirect to an error page or show a toast
-        })
-        .finally(() => setLoading(false));
-  }, [params.id]);
-  
-  const handlePostAnswer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) {
-      toast({ variant: "destructive", title: "Not logged in", description: "You must be logged in to post an answer." });
-      return;
-    }
-    if (newAnswer.trim().length < 20) {
-      toast({ variant: "destructive", title: "Answer is too short", description: "Your answer must be at least 20 characters long." });
-      return;
-    }
-    
-    startSubmitting(async () => {
-        const result = await postAnswer({
-            content: newAnswer,
-            questionId: params.id,
-            authorId: currentUser._id,
-        });
-
-        if (result.success && result.answer) {
-            // Optimistically update the UI with the new answer
-            const newAnswerWithAuthor = { ...result.answer, author: { _id: currentUser._id, name: currentUser.name, avatarUrl: currentUser.avatarUrl }};
-            setQuestion(prev => prev ? { ...prev, answers: [...prev.answers, newAnswerWithAuthor as Answer] } : null);
-            setNewAnswer(""); // Clear the editor
-            toast({ title: "Answer Posted!", description: "Your answer has been successfully submitted." });
-            router.refresh(); // Re-fetch server data to ensure consistency
-        } else {
-            toast({ variant: "destructive", title: "Failed to post answer", description: result.error || "An unknown error occurred." });
-        }
-    });
-  };
-
-  if (loading) {
-    return (
-       <div className="flex justify-center items-center py-10">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-4 text-muted-foreground">Loading Question...</p>
-        </div>
-    );
-  }
+export default async function QuestionDetailPage({ params }: { params: { id: string } }) {
+  const question = await getQuestionDetails(params.id);
 
   if (!question) {
-    // This will be handled by the notFound() call in useEffect, but as a fallback:
-    return notFound();
+    notFound();
   }
+
+  const token = cookies().get('token')?.value;
+  let currentUser: DecodedUser | null = null;
+  if (token) {
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET!) as DecodedUser;
+        currentUser = { id: decoded.id, name: decoded.name, avatarUrl: decoded.avatarUrl };
+    } catch (e) {
+        // Invalid token
+    }
+  }
+
+  const isQuestionOwner = currentUser?.id === question.author._id;
 
   const sortedAnswers = [...question.answers].sort((a, b) => {
     if (a.isAccepted) return -1
     if (b.isAccepted) return 1
-    return b.votes - a.votes
+    // Using votes is not ideal since it's client-side state. Sorting by date is more reliable here.
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
-
-  const isQuestionOwner = currentUser?._id === question.author._id;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -148,39 +87,12 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
         </div>
       </div>
       <Separator />
-      <div className="my-8">
-        <h2 className="text-2xl font-bold font-headline mb-4">
-          {sortedAnswers.length} Answer{sortedAnswers.length !== 1 && "s"}
-        </h2>
-        <div className="space-y-6">
-          {sortedAnswers.map(answer => (
-            <AnswerItem key={answer._id} answer={answer} isQuestionOwner={isQuestionOwner} />
-          ))}
-        </div>
-      </div>
-       <div className="mt-12">
-        <h2 className="text-2xl font-bold font-headline mb-4">Your Answer</h2>
-        {currentUser ? (
-          <form onSubmit={handlePostAnswer}>
-            <RichTextEditor
-              value={newAnswer} 
-              onChange={setNewAnswer}
-              placeholder="Describe your answer in detail..."
-            />
-            <Button type="submit" className="mt-4 bg-accent hover:bg-accent/90" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Post Your Answer
-            </Button>
-          </form>
-        ) : (
-          <div className="p-4 border rounded-md text-center bg-secondary/50">
-            <p className="text-muted-foreground">You must be logged in to post an answer.</p>
-            <Button asChild variant="link" className="mt-2">
-              <Link href="/login">Login or Sign Up</Link>
-            </Button>
-          </div>
-        )}
-      </div>
+      
+      <AnswerSection 
+        questionId={question._id}
+        answers={sortedAnswers} 
+        isQuestionOwner={isQuestionOwner}
+      />
     </div>
   )
 }
