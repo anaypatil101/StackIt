@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,17 @@ import { QuestionItem } from '@/components/questions/question-item';
 import type { Question } from '@/lib/types';
 import { getSearchedQuestions } from './actions';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 function SearchBar() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');
-  const [isPending, startTransition] = useTransition();
-  const { toast } = useToast();
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,6 +55,7 @@ export default function Home() {
   const searchParams = useSearchParams();
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>(allQuestions);
   const [isSearching, startSearchTransition] = useTransition();
+  const [sortBy, setSortBy] = useState('recent');
   const { toast } = useToast();
 
   const query = searchParams.get('q');
@@ -88,6 +94,20 @@ export default function Home() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  const sortedQuestions = useMemo(() => {
+    const sorted = [...filteredQuestions];
+    switch (sortBy) {
+      case 'recent':
+        return sorted.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      case 'upvoted':
+        return sorted.sort((a, b) => b.votes - a.votes);
+      case 'answered':
+        return sorted.sort((a, b) => b.answers.length - a.answers.length);
+      default:
+        return sorted;
+    }
+  }, [filteredQuestions, sortBy]);
+
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -100,8 +120,22 @@ export default function Home() {
           </Link>
         </Button>
       </div>
-      <div className="mb-6">
-        <SearchBar />
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-grow">
+          <SearchBar />
+        </div>
+        <div className="w-full sm:w-48">
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger>
+              <SelectValue placeholder="Sort by..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="recent">Most Recent</SelectItem>
+              <SelectItem value="upvoted">Most Upvoted</SelectItem>
+              <SelectItem value="answered">Most Answered</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
        {isSearching ? (
         <div className="flex justify-center items-center py-10">
@@ -110,8 +144,8 @@ export default function Home() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredQuestions.length > 0 ? (
-            filteredQuestions.map((question) => (
+          {sortedQuestions.length > 0 ? (
+            sortedQuestions.map((question) => (
               <QuestionItem key={question.id} question={question} />
             ))
           ) : (
