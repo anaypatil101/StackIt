@@ -3,16 +3,16 @@ import mongoose, { Document, Schema, Model, Types } from 'mongoose';
 import type { User } from './user';
 import type { Answer } from './answer';
 
-export interface Question extends Document {
-  title: string;
-  description: string;
-  tags: string[];
-  author: Types.ObjectId | User;
-  answers: (Types.ObjectId | Answer)[];
-  votes: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// export interface Question extends Document {
+//   title: string;
+//   description: string;
+//   tags: string[];
+//   author: Types.ObjectId | User;
+//   answers: (Types.ObjectId | Answer)[];
+//   votes: number;
+//   createdAt: Date;
+//   updatedAt: Date;
+// }
 
 const QuestionSchema = new Schema<Question>({
   title: {
