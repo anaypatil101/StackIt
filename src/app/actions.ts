@@ -9,7 +9,10 @@ import type { Question } from "@/lib/types";
 // This function now fetches all questions from the database
 export async function getAllQuestions(): Promise<{ success: boolean; questions?: Question[]; error?: string }> {
   try {
-    await dbConnect();
+    const conn = await dbConnect();
+    if (!conn) {
+      return { success: true, questions: [] };
+    }
     const questions = await QuestionModel.find({})
       .populate('author', 'name avatarUrl')
       .populate({
@@ -35,7 +38,10 @@ export async function getSearchedQuestions(
   query: string
 ): Promise<{ success: boolean; questions?: Question[]; error?: string }> {
   try {
-    await dbConnect();
+    const conn = await dbConnect();
+    if (!conn) {
+      return { success: true, questions: [] };
+    }
     // A simple text search using MongoDB's text index for initial filtering
     const initialFilter = await QuestionModel.find(
       { $text: { $search: query } },
