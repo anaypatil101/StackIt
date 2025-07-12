@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Wand2, X, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,7 @@ import { RichTextEditor } from "@/components/shared/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { getSuggestedTags } from "./actions";
+import { useAuth } from "@/context/auth-context";
 
 const formSchema = z.object({
   title: z.string().min(10, "Title must be at least 10 characters long."),
@@ -34,6 +36,7 @@ export default function AskQuestionPage() {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -85,13 +88,26 @@ export default function AskQuestionPage() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log({ ...values, tags });
+    console.log({ ...values, tags, author: currentUser });
     toast({
       title: "Question Posted!",
       description: "Your question has been successfully submitted.",
     });
     router.push("/");
   }
+
+  if (!currentUser) {
+    return (
+       <div className="max-w-4xl mx-auto text-center">
+        <h1 className="text-3xl font-bold font-headline mb-4">Ask a Public Question</h1>
+        <p className="mb-6 text-muted-foreground">You must be logged in to ask a question.</p>
+        <Button asChild>
+          <Link href="/login">Login to Continue</Link>
+        </Button>
+      </div>
+    )
+  }
+
 
   return (
     <div className="max-w-4xl mx-auto">

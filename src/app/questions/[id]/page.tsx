@@ -16,10 +16,12 @@ import { VoteButtons } from "@/components/shared/vote-buttons"
 import { AnswerItem } from "@/components/answers/answer-item"
 import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/shared/rich-text-editor";
+import { useAuth } from "@/context/auth-context";
 
 export default function QuestionDetailPage({ params }: { params: { id: string } }) {
   const question = questions.find((q) => q.id === params.id)
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const [answers, setAnswers] = useState<Answer[]>(question?.answers || []);
   const [newAnswer, setNewAnswer] = useState("");
@@ -36,7 +38,15 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
 
   const handlePostAnswer = (e: React.FormEvent) => {
     e.preventDefault();
-    // Basic validation, tiptap will enforce minimum length via schema if needed
+    if (!currentUser) {
+      toast({
+        variant: "destructive",
+        title: "Not logged in",
+        description: "You must be logged in to post an answer.",
+      });
+      return;
+    }
+
     if (newAnswer.trim().length < 20) {
       toast({
         variant: "destructive",
@@ -48,7 +58,7 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
     
     const newAnswerObject: Answer = {
       id: `ans-${Date.now()}`,
-      author: users.jane, // Assuming the logged in user is Jane Doe
+      author: currentUser,
       content: newAnswer,
       votes: 0,
       isAccepted: false,
@@ -62,6 +72,8 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
       description: "Your answer has been successfully submitted.",
     });
   };
+
+  const isQuestionOwner = currentUser?.name === question.author.name;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -116,20 +128,29 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
         </h2>
         <div className="space-y-6">
           {sortedAnswers.map(answer => (
-            <AnswerItem key={answer.id} answer={answer} isQuestionOwner={true} />
+            <AnswerItem key={answer.id} answer={answer} isQuestionOwner={isQuestionOwner} />
           ))}
         </div>
       </div>
        <div className="mt-12">
         <h2 className="text-2xl font-bold font-headline mb-4">Your Answer</h2>
-        <form onSubmit={handlePostAnswer}>
-          <RichTextEditor
-             value={newAnswer} 
-             onChange={setNewAnswer}
-             placeholder="Describe your answer in detail..."
-          />
-          <Button type="submit" className="mt-4 bg-accent hover:bg-accent/90">Post Your Answer</Button>
-        </form>
+        {currentUser ? (
+          <form onSubmit={handlePostAnswer}>
+            <RichTextEditor
+              value={newAnswer} 
+              onChange={setNewAnswer}
+              placeholder="Describe your answer in detail..."
+            />
+            <Button type="submit" className="mt-4 bg-accent hover:bg-accent/90">Post Your Answer</Button>
+          </form>
+        ) : (
+          <div className="p-4 border rounded-md text-center bg-secondary/50">
+            <p className="text-muted-foreground">You must be logged in to post an answer.</p>
+            <Button asChild variant="link" className="mt-2">
+              <Link href="/login">Login or Sign Up</Link>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   )
