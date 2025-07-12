@@ -51,12 +51,12 @@ export async function POST(req: NextRequest) {
         });
 
         // Return user data without the password
-        // const userResponse = {
-        //     _id: user._id,
-        //     name: user.name,
-        //     email: user.email,
-        //     avatarUrl: user.avatarUrl,
-        // };
+        const userResponse = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+        };
         
         return NextResponse.json({ message: 'Login successful', user: userResponse }, { status: 200 });
 
