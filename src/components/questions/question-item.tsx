@@ -31,9 +31,11 @@ export function QuestionItem({ question }: QuestionItemProps) {
           </Link>
           <div className="flex flex-wrap gap-2 my-2">
             {question.tags.map((tag) => (
-              <Badge key={tag} variant="secondary">
-                {tag}
-              </Badge>
+              <Link key={tag} href={`/?q=${encodeURIComponent(tag)}`}>
+                <Badge variant="secondary" className="cursor-pointer hover:bg-primary/20 transition-colors">
+                  {tag}
+                </Badge>
+              </Link>
             ))}
           </div>
           <div className="flex items-center justify-between text-sm text-muted-foreground mt-4">
