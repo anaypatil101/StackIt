@@ -1,19 +1,23 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { questions } from '@/lib/mock-data';
-import { PlusCircle, Search } from 'lucide-react';
+import { questions as allQuestions } from '@/lib/mock-data';
+import { PlusCircle, Search, Loader2 } from 'lucide-react';
 import { QuestionItem } from '@/components/questions/question-item';
 import type { Question } from '@/lib/types';
+import { getSearchedQuestions } from './actions';
+import { useToast } from '@/hooks/use-toast';
 
 function SearchBar() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -23,8 +27,8 @@ function SearchBar() {
     } else {
       params.delete('q');
     }
+    // Using pushState and dispatching an event to ensure the page re-renders with the new query
     window.history.pushState(null, '', `?${params.toString()}`);
-    // Manually trigger a re-render by dispatching a popstate event
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
@@ -33,7 +37,7 @@ function SearchBar() {
       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
       <Input
         type="search"
-        placeholder="Search questions by keyword or tag..."
+        placeholder="Ask Gemini to find questions..."
         className="pl-10"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -44,31 +48,40 @@ function SearchBar() {
 
 export default function Home() {
   const searchParams = useSearchParams();
-  const [filteredQuestions, setFilteredQuestions] = useState<Question[]>(questions);
+  const [filteredQuestions, setFilteredQuestions] = useState<Question[]>(allQuestions);
+  const [isSearching, startSearchTransition] = useTransition();
+  const { toast } = useToast();
 
   const query = searchParams.get('q');
 
   useEffect(() => {
-    if (query) {
-      const lowercasedQuery = query.toLowerCase();
-      const filtered = questions.filter(
-        (question) =>
-          question.title.toLowerCase().includes(lowercasedQuery) ||
-          question.description.toLowerCase().includes(lowercasedQuery) ||
-          question.tags.some((tag) => tag.toLowerCase().includes(lowercasedQuery))
-      );
-      setFilteredQuestions(filtered);
-    } else {
-      setFilteredQuestions(questions);
-    }
-  }, [query]);
+    const performSearch = async () => {
+      if (query) {
+        startSearchTransition(async () => {
+          const result = await getSearchedQuestions(query);
+          if (result.success && result.questions) {
+            setFilteredQuestions(result.questions);
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Search Failed',
+              description: result.error || 'Could not perform smart search.',
+            });
+            setFilteredQuestions(allQuestions); // Fallback to all questions on error
+          }
+        });
+      } else {
+        setFilteredQuestions(allQuestions);
+      }
+    };
 
-  // This is a trick to re-listen to window events for client-side routing changes
-  // because useSearchParams doesn't always trigger re-renders on pushState
+    performSearch();
+  }, [query, toast]);
+
+  // Re-listen to window events for client-side routing changes
   useEffect(() => {
     const handlePopState = () => {
-      // The searchParams object will be updated, triggering the effect above
-      // We just need to force a re-render to get the new searchParams
+      // Force re-render to get new searchParams and trigger search
       setFilteredQuestions(prev => [...prev]);
     };
     window.addEventListener('popstate', handlePopState);
@@ -90,20 +103,27 @@ export default function Home() {
       <div className="mb-6">
         <SearchBar />
       </div>
-      <div className="space-y-4">
-        {filteredQuestions.length > 0 ? (
-          filteredQuestions.map((question) => (
-            <QuestionItem key={question.id} question={question} />
-          ))
-        ) : (
-          <div className="text-center py-10">
-            <h2 className="text-2xl font-semibold">No questions found</h2>
-            <p className="text-muted-foreground mt-2">
-              Try adjusting your search or ask a new question!
-            </p>
-          </div>
-        )}
-      </div>
+       {isSearching ? (
+        <div className="flex justify-center items-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-4 text-muted-foreground">Gemini is searching...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredQuestions.length > 0 ? (
+            filteredQuestions.map((question) => (
+              <QuestionItem key={question.id} question={question} />
+            ))
+          ) : (
+            <div className="text-center py-10">
+              <h2 className="text-2xl font-semibold">No questions found</h2>
+              <p className="text-muted-foreground mt-2">
+                Try adjusting your search or ask a new question!
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
