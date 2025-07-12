@@ -61,6 +61,10 @@ export async function getSearchedQuestions(
 
     const { questionIds } = await searchQuestions({ query, questions: allQuestions });
     
+    if (questionIds.length === 0) {
+      return { success: true, questions: [] };
+    }
+    
     // Fetch the full question objects for the IDs returned by Gemini
     const foundQuestions = await QuestionModel.find({ '_id': { $in: questionIds }})
       .populate('author', 'name avatarUrl')

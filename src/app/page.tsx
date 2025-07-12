@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useTransition, useMemo } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Search, Loader2 } from 'lucide-react';
@@ -21,6 +21,7 @@ import {
 import { useQuestion } from '@/context/question-context';
 
 function SearchBar() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');
 
@@ -32,9 +33,7 @@ function SearchBar() {
     } else {
       params.delete('q');
     }
-    // Using pushState and dispatching an event to ensure the page re-renders with the new query
-    window.history.pushState(null, '', `?${params.toString()}`);
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    router.push(`?${params.toString()}`);
   };
 
   return (
@@ -54,7 +53,8 @@ function SearchBar() {
 export default function Home() {
   const { questions: allQuestions, loading: questionsLoading } = useQuestion();
   const searchParams = useSearchParams();
-  const [filteredQuestions, setFilteredQuestions] = useState<Question[]>(allQuestions);
+  const router = useRouter();
+  const [filteredQuestions, setFilteredQuestions] = useState<Question[]>([]);
   const [isSearching, startSearchTransition] = useTransition();
   const [sortBy, setSortBy] = useState('recent');
   const { toast } = useToast();
@@ -74,7 +74,7 @@ export default function Home() {
               title: 'Search Failed',
               description: result.error || 'Could not perform smart search.',
             });
-            setFilteredQuestions(allQuestions); // Fallback to all questions on error
+            setFilteredQuestions([]); 
           }
         });
       } else {
@@ -85,23 +85,13 @@ export default function Home() {
     performSearch();
   }, [query, toast, allQuestions]);
   
-  // Update filtered questions when allQuestions context changes
+
   useEffect(() => {
     if (!query) {
       setFilteredQuestions(allQuestions);
     }
   }, [allQuestions, query]);
 
-
-  // Re-listen to window events for client-side routing changes
-  useEffect(() => {
-    const handlePopState = () => {
-      // Force re-render to get new searchParams and trigger search
-      window.location.reload();
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
 
   const sortedQuestions = useMemo(() => {
     const sorted = [...filteredQuestions];
@@ -161,7 +151,7 @@ export default function Home() {
             <div className="text-center py-10">
               <h2 className="text-2xl font-semibold">No questions found</h2>
               <p className="text-muted-foreground mt-2">
-                Try adjusting your search or ask a new question!
+                {query ? 'Try a different search query.' : 'Be the first to ask a question!'}
               </p>
             </div>
           )}
