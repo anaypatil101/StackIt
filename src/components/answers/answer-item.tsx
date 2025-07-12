@@ -12,10 +12,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { VoteButtons } from "@/components/shared/vote-buttons";
 
-// interface AnswerItemProps {
-//   answer: Answer;
-//   isQuestionOwner: boolean;
-// }
+interface AnswerItemProps {
+  answer: Answer;
+  isQuestionOwner: boolean;
+}
 
 export function AnswerItem({ answer, isQuestionOwner }: AnswerItemProps) {
   const [isAccepted, setIsAccepted] = useState(answer.isAccepted);
