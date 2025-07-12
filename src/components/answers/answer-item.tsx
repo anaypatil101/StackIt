@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
+import { formatDistanceToNow } from "date-fns";
 import { Check } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -21,6 +21,7 @@ export function AnswerItem({ answer, isQuestionOwner }: AnswerItemProps) {
   const [isAccepted, setIsAccepted] = useState(answer.isAccepted);
 
   const handleAccept = () => {
+    // In a real app, this would be an API call to the server
     setIsAccepted(!isAccepted);
   };
 
@@ -62,7 +63,7 @@ export function AnswerItem({ answer, isQuestionOwner }: AnswerItemProps) {
               </Avatar>
               <span>
                 <span className="group-hover:underline text-primary/80">{answer.author.name}</span> answered{" "}
-                {formatDistanceToNow(answer.createdAt, { addSuffix: true })}
+                {formatDistanceToNow(new Date(answer.createdAt), { addSuffix: true })}
               </span>
             </div>
           </Link>

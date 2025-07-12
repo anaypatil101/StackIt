@@ -3,51 +3,48 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { User } from '@/lib/types';
-import { users } from '@/lib/mock-data';
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (user: User) => void;
-  logout: () => void;
+  setCurrentUser: (user: User | null) => void;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// Fetches the user profile from the server using the stored token
+async function fetchUserProfile(): Promise<User | null> {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+        const data = await res.json();
+        return data.user;
+    }
+    return null;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, you'd verify a token with a backend.
-    // Here, we'll use localStorage to simulate a persistent session.
-    try {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        setCurrentUser(JSON.parse(storedUser));
+    const verifyUser = async () => {
+      try {
+        const user = await fetchUserProfile();
+        if (user) {
+          setCurrentUser(user);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user profile", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
-      localStorage.removeItem('currentUser');
-    } finally {
-      setLoading(false);
-    }
+    };
+    verifyUser();
   }, []);
-
-  const login = (user: User) => {
-    setCurrentUser(user);
-    localStorage.setItem('currentUser', JSON.stringify(user));
-  };
-
-  const logout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('currentUser');
-  };
 
   const value = {
     currentUser,
-    login,
-    logout,
+    setCurrentUser,
     loading,
   };
 

@@ -52,7 +52,7 @@ function SearchBar() {
 }
 
 export default function Home() {
-  const { questions: allQuestions } = useQuestion();
+  const { questions: allQuestions, loading: questionsLoading } = useQuestion();
   const searchParams = useSearchParams();
   const [filteredQuestions, setFilteredQuestions] = useState<Question[]>(allQuestions);
   const [isSearching, startSearchTransition] = useTransition();
@@ -84,12 +84,20 @@ export default function Home() {
 
     performSearch();
   }, [query, toast, allQuestions]);
+  
+  // Update filtered questions when allQuestions context changes
+  useEffect(() => {
+    if (!query) {
+      setFilteredQuestions(allQuestions);
+    }
+  }, [allQuestions, query]);
+
 
   // Re-listen to window events for client-side routing changes
   useEffect(() => {
     const handlePopState = () => {
       // Force re-render to get new searchParams and trigger search
-      setFilteredQuestions(prev => [...prev]);
+      window.location.reload();
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -99,7 +107,7 @@ export default function Home() {
     const sorted = [...filteredQuestions];
     switch (sortBy) {
       case 'recent':
-        return sorted.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        return sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       case 'upvoted':
         return sorted.sort((a, b) => b.votes - a.votes);
       case 'answered':
@@ -138,16 +146,16 @@ export default function Home() {
           </Select>
         </div>
       </div>
-       {isSearching ? (
+       {isSearching || questionsLoading ? (
         <div className="flex justify-center items-center py-10">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="ml-4 text-muted-foreground">Gemini is searching...</p>
+          <p className="ml-4 text-muted-foreground">{isSearching ? 'Gemini is searching...' : 'Loading questions...'}</p>
         </div>
       ) : (
         <div className="space-y-4">
           {sortedQuestions.length > 0 ? (
             sortedQuestions.map((question) => (
-              <QuestionItem key={question.id} question={question} />
+              <QuestionItem key={question._id} question={question} />
             ))
           ) : (
             <div className="text-center py-10">

@@ -1,11 +1,13 @@
 
 "use client"
 
+import { useTransition } from "react";
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button"
 import {
@@ -26,7 +28,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { users } from "@/lib/mock-data"
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
@@ -36,28 +37,41 @@ const formSchema = z.object({
 
 export default function SignupPage() {
   const router = useRouter()
-  const { login } = useAuth()
+  const { setCurrentUser } = useAuth()
   const { toast } = useToast()
+  const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { name: "", email: "", password: "" },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // This is a mock signup. In a real app, you would create a new user.
-    // We'll log in the mock 'currentUser' for demonstration.
-    const newUser = {
-      name: values.name,
-      avatarUrl: `https://placehold.co/40x40/9C27B0/FFFFFF.png?text=${values.name.charAt(0).toUpperCase()}`
-    };
-    console.log("Signup attempt with:", values);
-    login(newUser)
-    toast({
-      title: "Account Created",
-      description: `Welcome, ${newUser.name}!`,
-    })
-    router.push("/")
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    startTransition(async () => {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setCurrentUser(data.user);
+        toast({
+          title: "Account Created",
+          description: `Welcome, ${data.user.name}!`,
+        });
+        router.push("/");
+        router.refresh(); // To update header state
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Signup Failed",
+          description: data.message || "An unknown error occurred.",
+        });
+      }
+    });
   }
 
   return (
@@ -111,7 +125,8 @@ export default function SignupPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Create Account
               </Button>
             </form>

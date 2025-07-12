@@ -1,12 +1,12 @@
 
 import Link from "next/link"
-import { formatDistanceToNow } from "date-fns/formatDistanceToNow"
+import { formatDistanceToNow } from "date-fns"
 import { MessageSquare } from "lucide-react"
 
 import type { Question } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { VoteButtons } from "@/components/shared/vote-buttons"
 
 interface QuestionItemProps {
@@ -16,7 +16,7 @@ interface QuestionItemProps {
 export function QuestionItem({ question }: QuestionItemProps) {
   return (
     <Card className="hover:border-primary/50 transition-colors">
-      <CardContent className="p-4 flex gap-4">
+       <CardContent className="p-4 flex gap-4">
         <div className="hidden sm:flex flex-col items-center gap-1">
           <VoteButtons initialVotes={question.votes} />
           <div className="flex flex-col items-center text-sm text-muted-foreground pt-2">
@@ -25,7 +25,7 @@ export function QuestionItem({ question }: QuestionItemProps) {
           </div>
         </div>
         <div className="flex-grow">
-          <Link href={`/questions/${question.id}`} className="group">
+          <Link href={`/questions/${question._id}`} className="group">
             <h2 className="text-xl font-headline font-medium group-hover:text-primary transition-colors">
               {question.title}
             </h2>
@@ -52,7 +52,7 @@ export function QuestionItem({ question }: QuestionItemProps) {
               </div>
             </Link>
             <span>
-              asked {formatDistanceToNow(question.createdAt, { addSuffix: true })}
+              asked {formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}
             </span>
           </div>
         </div>

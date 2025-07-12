@@ -25,14 +25,23 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
+import { useToast } from "@/hooks/use-toast"
 
 export function Header() {
-  const { currentUser, logout } = useAuth()
+  const { currentUser, setCurrentUser } = useAuth()
   const router = useRouter()
+  const { toast } = useToast();
 
-  const handleLogout = () => {
-    logout()
-    router.push("/")
+  const handleLogout = async () => {
+    const res = await fetch('/api/auth/logout', { method: 'POST' });
+    if (res.ok) {
+      setCurrentUser(null);
+      toast({ title: "Logged Out", description: "You have been successfully logged out." });
+      router.push("/");
+      router.refresh();
+    } else {
+      toast({ variant: "destructive", title: "Logout Failed" });
+    }
   }
 
   return (
@@ -109,9 +118,6 @@ export function Header() {
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium leading-none">{currentUser.name}</p>
-                        <p className="text-xs leading-none text-muted-foreground">
-                          Mock User
-                        </p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />

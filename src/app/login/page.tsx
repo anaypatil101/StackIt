@@ -1,11 +1,13 @@
 
 "use client"
 
+import { useTransition } from "react";
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button"
 import {
@@ -26,33 +28,49 @@ import {
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/context/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { users } from "@/lib/mock-data"
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address."),
-  password: z.string().min(6, "Password must be at least 6 characters."),
+  password: z.string().min(1, "Password is required."),
 })
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login } = useAuth()
+  const { setCurrentUser } = useAuth()
   const { toast } = useToast()
+  const [isPending, startTransition] = useTransition();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { email: "", password: "" },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    // This is a mock login. In a real app, you would verify credentials with a server.
-    // We'll log in the mock 'currentUser' for demonstration.
-    console.log("Login attempt with:", values);
-    login(users.currentUser)
-    toast({
-      title: "Login Successful",
-      description: `Welcome back, ${users.currentUser.name}!`,
-    })
-    router.push("/")
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    startTransition(async () => {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setCurrentUser(data.user);
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${data.user.name}!`,
+        });
+        router.push("/");
+        router.refresh(); // To update header state
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: data.message || "An unknown error occurred.",
+        });
+      }
+    });
   }
 
   return (
@@ -93,7 +111,8 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={isPending}>
+                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Login
               </Button>
             </form>

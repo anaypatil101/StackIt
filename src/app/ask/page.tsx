@@ -22,10 +22,9 @@ import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/shared/rich-text-editor";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { getSuggestedTags } from "./actions";
+import { getSuggestedTags, createQuestion } from "./actions";
 import { useAuth } from "@/context/auth-context";
 import { useQuestion } from "@/context/question-context";
-import type { Question } from "@/lib/types";
 
 const formSchema = z.object({
   title: z.string().min(10, "Title must be at least 10 characters long."),
@@ -36,10 +35,12 @@ export default function AskQuestionPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [isSubmitting, startSubmitting] = useTransition();
+
   const router = useRouter();
   const { toast } = useToast();
   const { currentUser } = useAuth();
-  const { addQuestion } = useQuestion();
+  const { refreshQuestions } = useQuestion();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -91,26 +92,38 @@ export default function AskQuestionPage() {
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!currentUser) return;
-
-    const newQuestion: Question = {
-      id: `q-${Date.now()}`,
-      title: values.title,
-      description: values.description,
-      tags,
-      author: currentUser,
-      votes: 0,
-      answers: [],
-      createdAt: new Date(),
+    if (!currentUser) {
+      toast({ variant: "destructive", title: "Authentication required", description: "You must be logged in to post a question." });
+      return;
     }
     
-    addQuestion(newQuestion);
-    
-    toast({
-      title: "Question Posted!",
-      description: "Your question has been successfully submitted.",
+    if (tags.length === 0) {
+      toast({ variant: "destructive", title: "Tags are required", description: "Please add at least one tag to your question." });
+      return;
+    }
+
+    startSubmitting(async () => {
+      const result = await createQuestion({
+        ...values,
+        tags,
+        authorId: currentUser._id,
+      });
+
+      if (result.success && result.questionId) {
+        toast({
+          title: "Question Posted!",
+          description: "Your question has been successfully submitted.",
+        });
+        await refreshQuestions(); // Refresh the global question state
+        router.push(`/questions/${result.questionId}`);
+      } else {
+         toast({
+          variant: "destructive",
+          title: "Failed to post question",
+          description: result.error || "An unknown error occurred.",
+        });
+      }
     });
-    router.push("/");
   }
 
   if (!currentUser) {
@@ -180,6 +193,7 @@ export default function AskQuestionPage() {
                 Suggest Tags
               </Button>
             </div>
+            <p className="text-sm text-muted-foreground mt-1">Press Enter to add a tag.</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="text-sm py-1">
@@ -196,7 +210,8 @@ export default function AskQuestionPage() {
             </div>
           </FormItem>
 
-          <Button type="submit" size="lg" className="bg-accent hover:bg-accent/90">
+          <Button type="submit" size="lg" className="bg-accent hover:bg-accent/90" disabled={isSubmitting}>
+             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Post Your Question
           </Button>
         </form>

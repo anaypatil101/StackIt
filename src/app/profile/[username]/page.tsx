@@ -1,36 +1,63 @@
 
-"use client"
+"use client";
 
-import { notFound, useParams } from "next/navigation"
-import Image from "next/image"
-import Link from "next/link"
-import { formatDistanceToNow } from "date-fns"
-import { HelpCircle, MessageSquare } from "lucide-react"
+import { useState, useEffect } from "react";
+import { notFound, useParams } from "next/navigation";
+import Link from "next/link";
+import { formatDistanceToNow } from "date-fns";
+import { HelpCircle, MessageSquare, Loader2 } from "lucide-react";
 
-import { users } from "@/lib/mock-data"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { useQuestion } from "@/context/question-context"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import type { User, Question } from "@/lib/types";
+
+interface ProfileData {
+    user: User;
+    questions: Question[];
+    answerCount: number;
+}
+
+// Server action to fetch profile data
+async function getProfileData(username: string): Promise<ProfileData | null> {
+    const res = await fetch(`/api/users/${username}`, { cache: 'no-store' });
+    if (!res.ok) {
+        return null;
+    }
+    return res.json();
+}
 
 export default function ProfilePage() {
-  const params = useParams()
-  const username = decodeURIComponent(params.username as string)
-  const { questions: allQuestions } = useQuestion();
+  const params = useParams();
+  const username = decodeURIComponent(params.username as string);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const user = Object.values(users).find(u => u.name === username)
+  useEffect(() => {
+    if (username) {
+        getProfileData(username)
+            .then(data => {
+                setProfileData(data);
+            })
+            .catch(err => console.error("Failed to fetch profile data", err))
+            .finally(() => setLoading(false));
+    }
+  }, [username]);
 
-  if (!user) {
-    notFound()
+  if (loading) {
+      return (
+          <div className="flex justify-center items-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="ml-4 text-muted-foreground">Loading Profile...</p>
+          </div>
+      );
   }
 
-  const userQuestions = allQuestions
-    .filter(q => q.author.name === user.name)
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-
-  const userAnswerCount = allQuestions.reduce((count, question) => {
-    return count + question.answers.filter(a => a.author.name === user.name).length
-  }, 0)
+  if (!profileData) {
+    notFound();
+  }
+  
+  const { user, questions: userQuestions, answerCount: userAnswerCount } = profileData;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -71,9 +98,9 @@ export default function ProfilePage() {
         <div className="space-y-4">
           {userQuestions.length > 0 ? (
             userQuestions.map(question => (
-              <Card key={question.id} className="hover:border-primary/50 transition-colors">
+              <Card key={question._id} className="hover:border-primary/50 transition-colors">
                 <CardContent className="p-4">
-                  <Link href={`/questions/${question.id}`} className="group">
+                  <Link href={`/questions/${question._id}`} className="group">
                     <h3 className="text-lg font-semibold group-hover:text-primary transition-colors">{question.title}</h3>
                   </Link>
                   <div className="flex flex-wrap gap-2 my-2">
@@ -82,7 +109,7 @@ export default function ProfilePage() {
                     ))}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    asked {formatDistanceToNow(question.createdAt, { addSuffix: true })}
+                    asked {formatDistanceToNow(new Date(question.createdAt), { addSuffix: true })}
                   </p>
                 </CardContent>
               </Card>

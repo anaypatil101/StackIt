@@ -1,12 +1,12 @@
 
 "use client";
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useTransition } from "react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { format } from "date-fns"
+import { Loader2 } from "lucide-react"
 
-import { users } from "@/lib/mock-data"
 import type { Answer, Question } from "@/lib/types"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -18,71 +18,86 @@ import { useToast } from "@/hooks/use-toast";
 import { RichTextEditor } from "@/components/shared/rich-text-editor";
 import { useAuth } from "@/context/auth-context";
 import { useQuestion } from "@/context/question-context";
+import { postAnswer } from "./actions";
+
+async function getQuestionDetails(id: string): Promise<Question | null> {
+    // This fetch should be replaced by a server action or direct db call in a server component
+    const res = await fetch(`/api/questions/${id}`, { cache: 'no-store' });
+    if (!res.ok) {
+        return null;
+    }
+    const data = await res.json();
+    return data.question;
+}
+
 
 export default function QuestionDetailPage({ params }: { params: { id: string } }) {
-  const { questions, addAnswer } = useQuestion();
-  const [question, setQuestion] = useState<Question | undefined>(undefined);
-  
+  const [question, setQuestion] = useState<Question | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, startSubmitting] = useTransition();
+
   const { toast } = useToast();
   const { currentUser } = useAuth();
   
   const [newAnswer, setNewAnswer] = useState("");
   
   useEffect(() => {
-    const foundQuestion = questions.find((q) => q.id === params.id);
-    setQuestion(foundQuestion);
-  }, [params.id, questions]);
+    getQuestionDetails(params.id)
+        .then(data => {
+            setQuestion(data);
+        })
+        .catch(err => console.error("Failed to fetch question details", err))
+        .finally(() => setLoading(false));
+  }, [params.id]);
   
-  
+  const handlePostAnswer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser) {
+      toast({ variant: "destructive", title: "Not logged in", description: "You must be logged in to post an answer." });
+      return;
+    }
+    if (newAnswer.trim().length < 20) {
+      toast({ variant: "destructive", title: "Answer is too short", description: "Your answer must be at least 20 characters long." });
+      return;
+    }
+    
+    startSubmitting(async () => {
+        const result = await postAnswer({
+            content: newAnswer,
+            questionId: params.id,
+            authorId: currentUser._id,
+        });
+
+        if (result.success && result.answer) {
+            setQuestion(prev => prev ? { ...prev, answers: [...prev.answers, result.answer as Answer] } : null);
+            setNewAnswer(""); // Clear the editor
+            toast({ title: "Answer Posted!", description: "Your answer has been successfully submitted." });
+        } else {
+            toast({ variant: "destructive", title: "Failed to post answer", description: result.error || "An unknown error occurred." });
+        }
+    });
+  };
+
+  if (loading) {
+    return (
+       <div className="flex justify-center items-center py-10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="ml-4 text-muted-foreground">Loading Question...</p>
+        </div>
+    );
+  }
+
   if (!question) {
-    // Should show a loading state ideally
-    return null;
+    notFound();
   }
 
   const sortedAnswers = [...question.answers].sort((a, b) => {
     if (a.isAccepted) return -1
     if (b.isAccepted) return 1
     return b.votes - a.votes
-  })
+  });
 
-  const handlePostAnswer = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) {
-      toast({
-        variant: "destructive",
-        title: "Not logged in",
-        description: "You must be logged in to post an answer.",
-      });
-      return;
-    }
-
-    if (newAnswer.trim().length < 20) {
-      toast({
-        variant: "destructive",
-        title: "Answer is too short",
-        description: "Your answer must be at least 20 characters long.",
-      });
-      return;
-    }
-    
-    const newAnswerObject: Answer = {
-      id: `ans-${Date.now()}`,
-      author: currentUser,
-      content: newAnswer,
-      votes: 0,
-      isAccepted: false,
-      createdAt: new Date(),
-    };
-
-    addAnswer(question.id, newAnswerObject);
-    setNewAnswer(""); // Clear the editor
-    toast({
-      title: "Answer Posted!",
-      description: "Your answer has been successfully submitted.",
-    });
-  };
-
-  const isQuestionOwner = currentUser?.name === question.author.name;
+  const isQuestionOwner = currentUser?._id === question.author._id;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -91,8 +106,8 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
         <div className="flex items-center text-sm text-muted-foreground space-x-2 mb-4">
           <span>
             Asked{" "}
-            <time dateTime={question.createdAt.toISOString()}>
-              {format(question.createdAt, "MMM d, yyyy 'at' HH:mm")}
+            <time dateTime={new Date(question.createdAt).toISOString()}>
+              {format(new Date(question.createdAt), "MMM d, yyyy 'at' HH:mm")}
             </time>
           </span>
         </div>
@@ -137,7 +152,7 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
         </h2>
         <div className="space-y-6">
           {sortedAnswers.map(answer => (
-            <AnswerItem key={answer.id} answer={answer} isQuestionOwner={isQuestionOwner} />
+            <AnswerItem key={answer._id} answer={answer} isQuestionOwner={isQuestionOwner} />
           ))}
         </div>
       </div>
@@ -150,7 +165,10 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
               onChange={setNewAnswer}
               placeholder="Describe your answer in detail..."
             />
-            <Button type="submit" className="mt-4 bg-accent hover:bg-accent/90">Post Your Answer</Button>
+            <Button type="submit" className="mt-4 bg-accent hover:bg-accent/90" disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Post Your Answer
+            </Button>
           </form>
         ) : (
           <div className="p-4 border rounded-md text-center bg-secondary/50">
