@@ -14,8 +14,8 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { VoteButtons } from "@/components/shared/vote-buttons"
 import { AnswerItem } from "@/components/answers/answer-item"
-import { RichTextEditor } from "@/components/shared/rich-text-editor"
 import { useToast } from "@/hooks/use-toast";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function QuestionDetailPage({ params }: { params: { id: string } }) {
   const question = questions.find((q) => q.id === params.id)
@@ -117,7 +117,12 @@ export default function QuestionDetailPage({ params }: { params: { id: string } 
        <div className="mt-12">
         <h2 className="text-2xl font-bold font-headline mb-4">Your Answer</h2>
         <form onSubmit={handlePostAnswer}>
-          <RichTextEditor value={newAnswer} onChange={(e) => setNewAnswer(e.target.value)} />
+          <Textarea 
+             placeholder="Describe your answer in detail..."
+             className="h-48"
+             value={newAnswer} 
+             onChange={(e) => setNewAnswer(e.target.value)} 
+          />
           <Button type="submit" className="mt-4 bg-accent hover:bg-accent/90">Post Your Answer</Button>
         </form>
       </div>
