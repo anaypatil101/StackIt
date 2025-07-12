@@ -3,7 +3,7 @@
 This is a NextJS starter in Firebase Studio.
 
 To get started, take a look at src/app/page.tsx.
-
+out
 ## Project Setup
 
 ### 1. Environment Variables
